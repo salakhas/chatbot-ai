@@ -1,65 +1,233 @@
-import Image from "next/image";
+"use client";
+import { useState } from "react";
 
 export default function Home() {
+  const [response, setResponse] = useState("");
+  const [sidebarState, setSidebarState] = useState("expanded");
+
+  const handleClick = async () => {
+    const res = await fetch("/api/chat");
+    const data = await res.json();
+    setResponse(data.message);
+  };
+
+  const sidebarContent = [
+    {
+      id: 1,
+      icon: "💬",
+      title: "Chat",
+    },
+    {
+      id: 2,
+      icon: "🃏",
+      title: "Flashcards",
+    },
+    {
+      id: 3,
+      icon: "📝",
+      title: "Quiz",
+    },
+    {
+      id: 4,
+      icon: "📄",
+      title: "Summarize",
+    },
+  ];
+  const [activeSidebar, setActiveSidebar] = useState(sidebarContent[0]);
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.js file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div
+      style={{
+        background:
+          "linear-gradient(135deg, #0d0b1e 0%, #130d2e 50%, #0e0b22 100%)",
+      }}
+      className="bg-dark-bg h-screen flex justify-center items-center"
+    >
+      <div
+        style={{
+          position: "fixed",
+          top: "-10%",
+          left: "-5%",
+          width: 500,
+          height: 500,
+          borderRadius: "50%",
+          background:
+            "radial-gradient(circle, rgba(139,92,246,0.3) 0%, transparent 70%)",
+          animation: "float1 8s ease-in-out infinite",
+          pointerEvents: "none",
+        }}
+      >
+        {/* Orb 1 */}
+      </div>
+      <div
+        style={{
+          position: "fixed",
+          bottom: "-15%",
+          right: "-5%",
+          width: 600,
+          height: 600,
+          borderRadius: "50%",
+          background:
+            "radial-gradient(circle, rgba(168,85,247,0.2) 0%, transparent 70%)",
+          animation: "float2 10s ease-in-out infinite",
+          pointerEvents: "none",
+        }}
+      >
+        {/* Orb 2 */}
+      </div>
+      <div
+        style={{
+          position: "fixed",
+          top: "40%",
+          left: "40%",
+          width: 300,
+          height: 300,
+          borderRadius: "50%",
+          background:
+            "radial-gradient(circle, rgba(196,181,253,0.1) 0%, transparent 70%)",
+          animation: "float3 12s ease-in-out infinite",
+          pointerEvents: "none",
+        }}
+      >
+        {/* Orb 3 */}
+      </div>
+      <div className="appWrapper glass relative">
+        {/* Sidebar */}
+        <div
+          style={{
+            borderRight: "1px solid rgba(255, 255, 255, 0.08)",
+            background: "rgba(0, 0, 0, 0.15)",
+            width: sidebarState === "expanded" ? 220 : 69,
+            transition: "0.2s",
+          }}
+        >
+          <div
+            style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.08)" }}
+            className="py-4 px-5"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <h1 className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
+              <span className="text-[24px] flex-shrink-0">📚</span>
+              <span
+                className="logoText text-[24px]"
+                style={{
+                  opacity: sidebarState === "expanded" ? 1 : 0,
+                  width: sidebarState === "expanded" ? "auto" : 0,
+                  overflow: "hidden",
+                  whiteSpace: "nowrap",
+                  transition:
+                    sidebarState === "expanded"
+                      ? "opacity 0.1s ease 0.10s"
+                      : "opacity 0s",
+                }}
+              >
+                Study Buddy
+              </span>
+            </h1>
+          </div>
+          <div className="h-[100%]s flex flex-col justify-between">
+            <div className="px-3 py-5 flex flex-col gap-[6px]">
+              {sidebarContent.map((ele, key) => {
+                return (
+                  <button
+                    onClick={() => {
+                      setActiveSidebar(ele);
+                    }}
+                    className={`${
+                      ele.title === activeSidebar.title
+                        ? "activeSidebar"
+                        : "inactiveSidebar"
+                    } inter-500 flex items-center`}
+                    key={key}
+                  >
+                    <span style={{ fontSize: "18px", flexShrink: 0 }}>
+                      {ele.icon}
+                    </span>
+
+                    <span
+                      style={{
+                        opacity: sidebarState === "expanded" ? 1 : 0,
+                        width: sidebarState === "expanded" ? "auto" : 0,
+                        overflow: "hidden",
+                        whiteSpace: "nowrap",
+                        transition:
+                          sidebarState === "expanded"
+                            ? "opacity 0.1s ease 0.15s"
+                            : "opacity 0s",
+                      }}
+                    >
+                      {ele.title}
+                    </span>
+
+                    <div
+                      style={{
+                        position: "absolute",
+                        right: 10,
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: "rgb(167, 139, 250)",
+                        boxShadow: "rgb(167, 139, 250) 0px 0px 8px",
+                        opacity:
+                          ele.title === activeSidebar.title &&
+                          sidebarState === "expanded"
+                            ? 1
+                            : 0,
+                        transition:
+                          sidebarState === "expanded"
+                            ? "opacity 0.1s ease 0.15s"
+                            : "opacity 0s",
+                      }}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => {
+                if (sidebarState === "expanded") {
+                  setSidebarState("collapsed");
+                } else {
+                  setSidebarState("expanded");
+                }
+              }}
+              className="absolute bottom-[28px]"
+              style={{
+                margin: "0px 12px",
+                width: sidebarState === "expanded" ? 195 : 45,
+                padding: 10,
+                background: "rgba(255, 255, 255, 0.05)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                borderRadius: 10,
+                color: "rgba(255, 255, 255, 0.4)",
+                fontSize: 12,
+                cursor: "pointer",
+                transition: "0.2s",
+              }}
+            >
+              {sidebarState === "expanded" ? "◀" : "▶"}
+            </button>
+          </div>
         </div>
-      </main>
+        <div
+          className="py-4 px-5 w-full h-[69px] flex items-center justify-between"
+          style={{
+            borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+            background: "rgba(0, 0, 0, 0.15)",
+          }}
+        >
+          <div className="activeMenuPill">
+            {activeSidebar.icon} {activeSidebar.title} Mode
+          </div>
+          <div className="flex items-center gap-[8px]">
+            <div className={`${true ? "aiReadyDot" : "aiNotReadyDot"}`}></div>
+            <p className="text-[rgba(255,255,255,0.4)] text-[13px]">AI Ready</p>
+          </div>
+        </div>
+      </div>
+      {/* <div>
+        <h1>My Chatbot app</h1>
+        <button onClick={handleClick}>Test Gemini</button>
+        <p>{response}</p>
+      </div> */}
     </div>
   );
 }
