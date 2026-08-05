@@ -201,3 +201,14 @@
   background: rgb(86, 86, 86);
   box-shadow: rgb(86, 86, 86) 0px 0px 8px;
 }
+
+@keyframes blink {
+  0%,
+  80%,
+  100% {
+    opacity: 0.2;
+  }
+  40% {
+    opacity: 1;
+  }
+}

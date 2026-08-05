@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function Home() {
   const [response, setResponse] = useState("");
@@ -34,6 +34,42 @@ export default function Home() {
     },
   ];
   const [activeSidebar, setActiveSidebar] = useState(sidebarContent[0]);
+  const welcomeMessages = {
+    chat: "Hey! I'm your Study Buddy 👋 Ask me anything — I'll explain it simply, give examples,  and help you understand.",
+    flashcards: "Paste any topic and I'll turn it into flashcards for you! 🃏",
+    quiz: "Tell me a subject and I'll quiz you on it! I'll ask questions and grade your answers. 📝",
+    summarize:
+      "Paste your notes, an article, or any text and I'll give you a clean summary. 📄",
+  };
+
+  const [messages, setMessages] = useState({
+    chat: [{ role: "ai", text: welcomeMessages.chat }],
+    flashcards: [{ role: "ai", text: welcomeMessages.flashcards }],
+    quiz: [{ role: "ai", text: welcomeMessages.quiz }],
+    summarize: [{ role: "ai", text: welcomeMessages.summarize }],
+  });
+
+  const messagesEndRef = useRef(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const [input, setInput] = useState("");
+
+  // Auto scroll to bottom when messages update
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, activeSidebar]);
+
+  const handleSend = async () => {
+    const userMessage = { role: "user", text: input };
+
+    // Only adds to the active sidebar's messages
+    setMessages((prev) => ({
+      ...prev,
+      [activeSidebar.title.toLowerCase()]: [
+        ...prev[activeSidebar.title.toLowerCase()],
+        userMessage,
+      ],
+    }));
+  };
   return (
     <div
       style={{
@@ -207,20 +243,152 @@ export default function Home() {
             </button>
           </div>
         </div>
-        <div
-          className="py-4 px-5 w-full h-[69px] flex items-center justify-between"
-          style={{
-            borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-            background: "rgba(0, 0, 0, 0.15)",
-          }}
-        >
-          <div className="activeMenuPill">
-            {activeSidebar.icon} {activeSidebar.title} Mode
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <div
+            className="py-4 px-5 w-full h-[69px] flex items-center justify-between"
+            style={{
+              borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+              background: "rgba(0, 0, 0, 0.15)",
+            }}
+          >
+            <div className="activeMenuPill">
+              {activeSidebar.icon} {activeSidebar.title} Mode
+            </div>
+            <div className="flex items-center gap-[8px]">
+              <div className={`${true ? "aiReadyDot" : "aiNotReadyDot"}`}></div>
+              <p className="text-[rgba(255,255,255,0.4)] text-[13px]">
+                AI Ready
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-[8px]">
-            <div className={`${true ? "aiReadyDot" : "aiNotReadyDot"}`}></div>
-            <p className="text-[rgba(255,255,255,0.4)] text-[13px]">AI Ready</p>
+          <div className="flex flex-col gap-4 p-6 overflow-y-auto flex-1">
+            {messages[activeSidebar.title.toLowerCase()]?.map((msg, i) => {
+              console.log(
+                activeSidebar.title.toLowerCase(),
+                "activeSidebar.title.toLowerCase()"
+              );
+              return (
+                <div
+                  key={i}
+                  className={`flex items-end gap-3 ${
+                    msg.role === "user" ? "flex-row-reverse" : "flex-row"
+                  }`}
+                >
+                  {/* Avatar */}
+                  <div
+                    className="w-9 h-9 rounded-[10px] flex items-center justify-center text-lg flex-shrink-0"
+                    style={{
+                      background: "rgba(139,92,246,0.2)",
+                      border: "1px solid rgba(139,92,246,0.3)",
+                    }}
+                  >
+                    {msg.role === "ai" ? "🤖" : "👤"}
+                  </div>
+
+                  {/* Bubble */}
+                  <div
+                    style={{
+                      maxWidth: "65%",
+                      padding: "12px 16px",
+                      borderRadius:
+                        msg.role === "ai"
+                          ? "18px 18px 18px 4px"
+                          : "18px 18px 4px 18px",
+                      background:
+                        msg.role === "ai"
+                          ? "rgba(139,92,246,0.15)"
+                          : "rgba(139,92,246,0.35)",
+                      border: "1px solid rgba(139,92,246,0.25)",
+                      color: "rgba(255,255,255,0.88)",
+                      fontSize: 14,
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    {msg.text}
+                  </div>
+                </div>
+              );
+            })}
+            {/* Typing indicator */}
+            {isTyping && (
+              <div className="flex items-end gap-3">
+                <div
+                  className="w-9 h-9 rounded-[10px] flex items-center justify-center text-lg flex-shrink-0"
+                  style={{
+                    background: "rgba(139,92,246,0.2)",
+                    border: "1px solid rgba(139,92,246,0.3)",
+                  }}
+                >
+                  🤖
+                </div>
+                <div
+                  style={{
+                    padding: "12px 16px",
+                    borderRadius: "18px 18px 18px 4px",
+                    background: "rgba(139,92,246,0.15)",
+                    border: "1px solid rgba(139,92,246,0.25)",
+                  }}
+                  className="flex gap-1 items-center"
+                >
+                  {[0, 1, 2].map((i) => (
+                    <span
+                      key={i}
+                      className="w-2 h-2 rounded-full"
+                      style={{
+                        background: "#a78bfa",
+                        animation: `blink 1.2s infinite ${i * 0.2}s`,
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Auto scroll anchor */}
+            <div ref={messagesEndRef} />
           </div>
+
+          {/* Fixed input bar */}
+          <div
+            className="flex items-end gap-3 p-4"
+            style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+          >
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              placeholder="Ask me anything..."
+              rows={1}
+              className="flex-1 resize-none p-3 rounded-[14px] text-sm"
+              style={{
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                color: "rgba(255,255,255,0.85)",
+                outline: "none",
+                lineHeight: 1.5,
+              }}
+            />
+            <button
+              onClick={handleSend}
+              disabled={!input.trim() || isTyping}
+              className="p-3 px-5 rounded-[14px] text-sm font-semibold text-white"
+              style={{
+                background: "linear-gradient(135deg, #7c3aed, #a855f7)",
+                boxShadow: "0 4px 20px rgba(139,92,246,0.4)",
+                opacity: !input.trim() || isTyping ? 0.5 : 1,
+                transition: "opacity 0.2s",
+                whiteSpace: "nowrap",
+              }}
+            >
+              ✦ Send
+            </button>
+          </div>
+          {/* </div> */}
         </div>
       </div>
       {/* <div>
