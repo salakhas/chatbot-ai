@@ -1,15 +1,9 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
 
 export default function Home() {
-  const [response, setResponse] = useState("");
   const [sidebarState, setSidebarState] = useState("expanded");
-
-  const handleClick = async () => {
-    const res = await fetch("/api/chat");
-    const data = await res.json();
-    setResponse(data.message);
-  };
 
   const sidebarContent = [
     {
@@ -59,16 +53,32 @@ export default function Home() {
   }, [messages, activeSidebar]);
 
   const handleSend = async () => {
+    if (!input.trim()) return;
     const userMessage = { role: "user", text: input };
+    const currentMode = activeSidebar.title.toLowerCase();
 
-    // Only adds to the active sidebar's messages
+    //Adds to the active sidebar's messages
     setMessages((prev) => ({
       ...prev,
-      [activeSidebar.title.toLowerCase()]: [
-        ...prev[activeSidebar.title.toLowerCase()],
-        userMessage,
-      ],
+      [currentMode]: [...prev[currentMode], userMessage],
     }));
+
+    setInput("");
+    setIsTyping(true);
+
+    // API Call
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: input, mode: currentMode }),
+    });
+    const data = await res.json();
+
+    setMessages((prev) => ({
+      ...prev,
+      [currentMode]: [...prev[currentMode], { role: "ai", text: data.message }],
+    }));
+    setIsTyping(false);
   };
   return (
     <div
@@ -263,10 +273,6 @@ export default function Home() {
           </div>
           <div className="flex flex-col gap-4 p-6 overflow-y-auto flex-1">
             {messages[activeSidebar.title.toLowerCase()]?.map((msg, i) => {
-              console.log(
-                activeSidebar.title.toLowerCase(),
-                "activeSidebar.title.toLowerCase()"
-              );
               return (
                 <div
                   key={i}
@@ -287,6 +293,7 @@ export default function Home() {
 
                   {/* Bubble */}
                   <div
+                    className="bubble"
                     style={{
                       maxWidth: "65%",
                       padding: "12px 16px",
@@ -304,7 +311,7 @@ export default function Home() {
                       lineHeight: 1.6,
                     }}
                   >
-                    {msg.text}
+                    <ReactMarkdown>{msg.text}</ReactMarkdown>
                   </div>
                 </div>
               );
@@ -348,7 +355,7 @@ export default function Home() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Fixed input bar */}
+          {/* Input bar and button */}
           <div
             className="flex items-end gap-3 p-4"
             style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
@@ -388,14 +395,8 @@ export default function Home() {
               ✦ Send
             </button>
           </div>
-          {/* </div> */}
         </div>
       </div>
-      {/* <div>
-        <h1>My Chatbot app</h1>
-        <button onClick={handleClick}>Test Gemini</button>
-        <p>{response}</p>
-      </div> */}
     </div>
   );
 }
