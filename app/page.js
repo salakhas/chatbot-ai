@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import FlashCardComponent from "./components/FlashCardComponent";
 
 export default function Home() {
   const [sidebarState, setSidebarState] = useState("expanded");
@@ -45,7 +46,13 @@ export default function Home() {
 
   const messagesEndRef = useRef(null);
   const [isTyping, setIsTyping] = useState(false);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState({
+    chat: "",
+    flashcards: "",
+    quiz: "",
+    summarize: "",
+  });
+  const [textareaHeight, setTextareaHeight] = useState(47);
 
   // Auto scroll to bottom when messages update
   useEffect(() => {
@@ -53,8 +60,11 @@ export default function Home() {
   }, [messages, activeSidebar]);
 
   const handleSend = async () => {
-    if (!input.trim()) return;
-    const userMessage = { role: "user", text: input };
+    if (!input[activeSidebar.title.toLowerCase()].trim()) return;
+    const userMessage = {
+      role: "user",
+      text: input[activeSidebar.title.toLowerCase()],
+    };
     const currentMode = activeSidebar.title.toLowerCase();
 
     //Adds to the active sidebar's messages
@@ -63,14 +73,25 @@ export default function Home() {
       [currentMode]: [...prev[currentMode], userMessage],
     }));
 
-    setInput("");
+    setInput((prev) => ({
+      ...prev,
+      [activeSidebar.title.toLowerCase()]: "",
+    }));
     setIsTyping(true);
+    setTextareaHeight(47);
+
+    // Sends history excluding the new message
+    const currentHistory = messages[currentMode];
 
     // API Call
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: input, mode: currentMode }),
+      body: JSON.stringify({
+        message: input[activeSidebar.title.toLowerCase()],
+        mode: currentMode,
+        history: currentHistory,
+      }),
     });
     const data = await res.json();
 
@@ -79,6 +100,25 @@ export default function Home() {
       [currentMode]: [...prev[currentMode], { role: "ai", text: data.message }],
     }));
     setIsTyping(false);
+  };
+
+  // Function to format Ai response for fleashcards
+  const parseFlashcards = (text) => {
+    const lines = text.split("\n").filter((ch) => ch.trim());
+    const cards = [];
+    let current = {};
+
+    lines.forEach((line) => {
+      if (line.startsWith("Q:")) {
+        current.question = line.replace("Q:", "").trim();
+      } else if (line.startsWith("A:")) {
+        current.answer = line.replace("A:", "").trim();
+        if (current.question) cards.push({ ...current });
+        current = {};
+      }
+    });
+
+    return cards;
   };
   return (
     <div
@@ -271,7 +311,7 @@ export default function Home() {
               </p>
             </div>
           </div>
-          <div className="flex flex-col gap-4 p-6 overflow-y-auto flex-1">
+          <div className="flex flex-col gap-4 p-6 overflow-y-auto flex-1 no-scrollbar">
             {messages[activeSidebar.title.toLowerCase()]?.map((msg, i) => {
               return (
                 <div
@@ -311,7 +351,20 @@ export default function Home() {
                       lineHeight: 1.6,
                     }}
                   >
-                    <ReactMarkdown>{msg.text}</ReactMarkdown>
+                    {activeSidebar.title.toLowerCase() === "flashcards" &&
+                    msg.role === "ai" ? (
+                      parseFlashcards(msg.text).length > 0 ? (
+                        <div className="flex flex-col gap-3">
+                          {parseFlashcards(msg.text).map((card, i) => (
+                            <FlashCardComponent key={i} card={card} index={i} />
+                          ))}
+                        </div>
+                      ) : (
+                        <ReactMarkdown>{msg.text}</ReactMarkdown>
+                      )
+                    ) : (
+                      <ReactMarkdown>{msg.text}</ReactMarkdown>
+                    )}
                   </div>
                 </div>
               );
@@ -361,8 +414,16 @@ export default function Home() {
             style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
           >
             <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
+              value={input[activeSidebar.title.toLowerCase()]}
+              onChange={(e) => {
+                setInput((prev) => ({
+                  ...prev,
+                  [activeSidebar.title.toLowerCase()]: e.target.value,
+                }));
+                if (e.target.scrollHeight > 47) {
+                  setTextareaHeight(e.target.scrollHeight);
+                }
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -370,24 +431,32 @@ export default function Home() {
                 }
               }}
               placeholder="Ask me anything..."
-              rows={1}
-              className="flex-1 resize-none p-3 rounded-[14px] text-sm"
+              // rows={1}
+              className="flex-1 resize-none p-3 rounded-[14px] text-sm no-scrollbar"
               style={{
                 background: "rgba(255,255,255,0.05)",
                 border: "1px solid rgba(255,255,255,0.1)",
                 color: "rgba(255,255,255,0.85)",
                 outline: "none",
                 lineHeight: 1.5,
+                height: textareaHeight,
+                minHeight: 47,
+                maxHeight: 250,
               }}
             />
             <button
               onClick={handleSend}
-              disabled={!input.trim() || isTyping}
+              disabled={
+                !input[activeSidebar.title.toLowerCase()].trim() || isTyping
+              }
               className="p-3 px-5 rounded-[14px] text-sm font-semibold text-white"
               style={{
                 background: "linear-gradient(135deg, #7c3aed, #a855f7)",
                 boxShadow: "0 4px 20px rgba(139,92,246,0.4)",
-                opacity: !input.trim() || isTyping ? 0.5 : 1,
+                opacity:
+                  !input[activeSidebar.title.toLowerCase()].trim() || isTyping
+                    ? 0.5
+                    : 1,
                 transition: "opacity 0.2s",
                 whiteSpace: "nowrap",
               }}

@@ -214,10 +214,38 @@
 }
 
 /* Markdown styling inside chat bubbles */
-.bubble p { margin-bottom: 8px; }
-.bubble p:last-child { margin-bottom: 0; }
-.bubble strong { color: #c4b5fd; font-weight: 600; }
-.bubble ul { padding-left: 16px; margin: 8px 0; }
-.bubble ol { padding-left: 16px; margin: 8px 0; }
-.bubble li { margin-bottom: 4px; }
-.bubble h3 { color: #c4b5fd; font-size: 15px; font-weight: 700; margin: 10px 0 6px; }
+.bubble p {
+  margin-bottom: 8px;
+}
+.bubble p:last-child {
+  margin-bottom: 0;
+}
+.bubble strong {
+  color: #c4b5fd;
+  font-weight: 600;
+}
+.bubble ul {
+  padding-left: 16px;
+  margin: 8px 0;
+}
+.bubble ol {
+  padding-left: 16px;
+  margin: 8px 0;
+}
+.bubble li {
+  margin-bottom: 4px;
+}
+.bubble h3 {
+  color: #c4b5fd;
+  font-size: 15px;
+  font-weight: 700;
+  margin: 10px 0 6px;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
