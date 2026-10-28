@@ -4,6 +4,7 @@ This is an AI study partner that explains things, turns topics into flashcards, 
 
 ✨ Features
 
+
 Study Buddy has four modes : 
 
 💬 Chat: ask anything and get simple explanations with examples.
@@ -16,6 +17,7 @@ Study Buddy has four modes :
 
 
 🛠️ Tech Stack
+
 
 Next.js and React
 
@@ -31,6 +33,8 @@ react-icons for navigation icons
 
 
 🧠 How It Works
+
+
 The user sends a message from the active mode (Chat, Flashcards, Quiz, or Summarize).
 
 The frontend sends the message, the mode, and that mode's chat history to POST /api/chat.
