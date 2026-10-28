@@ -1,36 +1,31 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+📚 Study Buddy
 
-## Getting Started
+This is an AI study partner that explains things, turns topics into flashcards, quizzes the user, and summarizes notes. It is built with Next.js and Google's Gemini API, and has a responsive layout that works on desktop and mobile.
 
-First, run the development server:
+✨ Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Study Buddy has four modes : 
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+💬 Chat: ask anything and get simple explanations with examples.
+🃏 Flashcards: paste a topic and get flip-able flashcards.
+📝 Quiz: name a subject and get quizzed, with your answers graded.
+📄 Summarize: paste notes or an article and get a clean summary.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+🛠️ Tech Stack
+Next.js and React
+Tailwind CSS
+Google Gemini API (gemini-3.6-flash)
+react-markdown for rendering replies
+Motion for mobile dock animation
+react-icons for navigation icons
 
-## Learn More
 
-To learn more about Next.js, take a look at the following resources:
+🧠 How It Works
+The user sends a message from the active mode (Chat, Flashcards, Quiz, or Summarize).
+The frontend sends the message, the mode, and that mode's chat history to POST /api/chat.
+The API route builds a mode-specific prompt, calls Gemini, and returns the reply.
+The reply is rendered as Markdown. In Flashcards mode, replies formatted as Q: / A: pairs are turned into interactive flashcards.
+If anything fails, the route returns a readable error, and the UI shows it with a retry button. 
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The API key stays on the server and is never sent to the browser.
