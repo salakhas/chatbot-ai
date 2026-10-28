@@ -116,6 +116,11 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+html {
+  background-color: #0E0B22; /* matches the bottom of your gradient */
+  color-scheme: dark;
+}
+
 .logoText {
   font-family: "Syne", sans-serif;
   font-weight: 800;
@@ -133,17 +138,19 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.appWrapper {
-  display: flex;
-  width: 95vw;
-  height: 92vh;
-  max-width: 1200px;
-  border-radius: 24px;
-  overflow: hidden;
-  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  position: relative;
-  z-index: 1;
+@media (min-width: 768px) {
+  .appWrapper {
+    display: flex;
+    width: 95vw;
+    height: 92vh;
+    max-width: 1200px;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    position: relative;
+    z-index: 1;
+  }
 }
 
 .activeSidebar {
@@ -184,6 +191,15 @@
   padding: 6px 16px;
   color: rgb(196, 181, 253);
   font-size: 13px;
+}
+
+.activeMenuPillSmall {
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 20px;
+  padding: 6px 16px;
+  color: rgb(196, 181, 253);
+  font-size: 12px;
 }
 
 .aiReadyDot {
@@ -248,4 +264,22 @@
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* code blocks: to keep on one line, scroll sideways */
+.bubble pre {
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  font-size: 12px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* inline code inside sentences, wrap normally */
+.bubble :not(pre) > code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }

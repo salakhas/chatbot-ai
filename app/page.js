@@ -2,10 +2,12 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import FlashCardComponent from "./components/FlashCardComponent";
+import MobileNav from "./components/MobileNav";
+import ErrorBubble from "./components/ErrorBubble";
 
 export default function Home() {
   const [sidebarState, setSidebarState] = useState("expanded");
-
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const sidebarContent = [
     {
       id: 1,
@@ -59,47 +61,89 @@ export default function Home() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, activeSidebar]);
 
-  const handleSend = async () => {
-    if (!input[activeSidebar.title.toLowerCase()].trim()) return;
-    const userMessage = {
-      role: "user",
-      text: input[activeSidebar.title.toLowerCase()],
-    };
-    const currentMode = activeSidebar.title.toLowerCase();
+  const sendMessage = async (text, { isRetry = false } = {}) => {
+    const mode = activeSidebar?.title?.toLowerCase();
+    if (!text.trim()) return;
 
-    //Adds to the active sidebar's messages
-    setMessages((prev) => ({
-      ...prev,
-      [currentMode]: [...prev[currentMode], userMessage],
-    }));
+    // Error bubbles are not sent to the API as history
+    const base = messages[mode].filter((m) => !m.error);
+    // On retry, the failed user message is displayed from messages
+    const history = isRetry ? base.slice(0, -1) : base;
 
-    setInput((prev) => ({
-      ...prev,
-      [activeSidebar.title.toLowerCase()]: "",
-    }));
+    if (isRetry) {
+      // remove the error bubble, keep the user's message
+      setMessages((prev) => ({
+        ...prev,
+        [mode]: prev[mode].filter((m) => !m.error),
+      }));
+    } else {
+      setMessages((prev) => ({
+        ...prev,
+        [mode]: [...prev[mode], { role: "user", text }],
+      }));
+      setInput((prev) => ({ ...prev, [mode]: "" }));
+      setTextareaHeight(47);
+    }
+
     setIsTyping(true);
-    setTextareaHeight(47);
 
-    // Sends history excluding the new message
-    const currentHistory = messages[currentMode];
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000); // 30s limit
 
-    // API Call
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: input[activeSidebar.title.toLowerCase()],
-        mode: currentMode,
-        history: currentHistory,
-      }),
-    });
-    const data = await res.json();
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, mode, history }),
+        signal: controller.signal,
+      });
 
-    setMessages((prev) => ({
-      ...prev,
-      [currentMode]: [...prev[currentMode], { role: "ai", text: data.message }],
-    }));
-    setIsTyping(false);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.message) {
+        throw new Error(
+          data.error || "Something went wrong. Please try again."
+        );
+      }
+
+      setMessages((prev) => ({
+        ...prev,
+        [mode]: [...prev[mode], { role: "ai", text: data.message }],
+      }));
+    } catch (err) {
+      let errorText = err.message;
+      if (err.name === "AbortError") {
+        errorText = "This is taking too long. Please try again.";
+      } else if (!navigator.onLine || err.message === "Failed to fetch") {
+        errorText =
+          "You seem to be offline. Check your connection and try again.";
+      }
+
+      setMessages((prev) => ({
+        ...prev,
+        [mode]: [
+          ...prev[mode],
+          { role: "ai", error: true, text: errorText, retryText: text },
+        ],
+      }));
+    } finally {
+      clearTimeout(timeout);
+      setIsTyping(false); 
+    }
+  };
+
+  const handleSend = () =>
+    sendMessage(input[activeSidebar?.title?.toLowerCase()]);
+
+  const fenceDiagrams = (text) => {
+    if (text.includes("```")) return text;
+    return text
+      .split("\n")
+      .map((line) =>
+        (line.match(/→|->/g) || []).length >= 2
+          ? "```\n" + line + "\n```"
+          : line
+      )
+      .join("\n");
   };
 
   // Function to format Ai response for fleashcards
@@ -126,7 +170,7 @@ export default function Home() {
         background:
           "linear-gradient(135deg, #0d0b1e 0%, #130d2e 50%, #0e0b22 100%)",
       }}
-      className="bg-dark-bg h-screen flex justify-center items-center"
+      className="md:bg-dark-bg md:h-screen md:flex md:justify-center md:items-center"
     >
       <div
         style={{
@@ -176,7 +220,7 @@ export default function Home() {
       >
         {/* Orb 3 */}
       </div>
-      <div className="appWrapper glass relative">
+      <div className="h-[100dvh] flex appWrapper glass relative max-md:w-full max-md:min-w-0">
         {/* Sidebar */}
         <div
           style={{
@@ -185,6 +229,7 @@ export default function Home() {
             width: sidebarState === "expanded" ? 220 : 69,
             transition: "0.2s",
           }}
+          className="hidden md:block"
         >
           <div
             style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.08)" }}
@@ -209,7 +254,7 @@ export default function Home() {
               </span>
             </h1>
           </div>
-          <div className="h-[100%]s flex flex-col justify-between">
+          <div className="flex flex-col justify-between">
             <div className="px-3 py-5 flex flex-col gap-[6px]">
               {sidebarContent.map((ele, key) => {
                 return (
@@ -218,7 +263,7 @@ export default function Home() {
                       setActiveSidebar(ele);
                     }}
                     className={`${
-                      ele.title === activeSidebar.title
+                      ele?.title === activeSidebar?.title
                         ? "activeSidebar"
                         : "inactiveSidebar"
                     } inter-500 flex items-center`}
@@ -253,7 +298,7 @@ export default function Home() {
                         background: "rgb(167, 139, 250)",
                         boxShadow: "rgb(167, 139, 250) 0px 0px 8px",
                         opacity:
-                          ele.title === activeSidebar.title &&
+                          ele.title === activeSidebar?.title &&
                           sidebarState === "expanded"
                             ? 1
                             : 0,
@@ -301,8 +346,8 @@ export default function Home() {
               background: "rgba(0, 0, 0, 0.15)",
             }}
           >
-            <div className="activeMenuPill">
-              {activeSidebar.icon} {activeSidebar.title} Mode
+            <div className="activeMenuPillSmall whitespace-nowrap md:activeMenuPill">
+              {activeSidebar?.icon} {activeSidebar?.title} Mode
             </div>
             <div className="flex items-center gap-[8px]">
               <div className={`${true ? "aiReadyDot" : "aiNotReadyDot"}`}></div>
@@ -312,7 +357,7 @@ export default function Home() {
             </div>
           </div>
           <div className="flex flex-col gap-4 p-6 overflow-y-auto flex-1 no-scrollbar">
-            {messages[activeSidebar.title.toLowerCase()]?.map((msg, i) => {
+            {messages[activeSidebar?.title?.toLowerCase()]?.map((msg, i) => {
               return (
                 <div
                   key={i}
@@ -333,7 +378,7 @@ export default function Home() {
 
                   {/* Bubble */}
                   <div
-                    className="bubble"
+                    className="bubble [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:text-xs [&_table]:block [&_table]:overflow-x-auto"
                     style={{
                       maxWidth: "65%",
                       padding: "12px 16px",
@@ -341,18 +386,29 @@ export default function Home() {
                         msg.role === "ai"
                           ? "18px 18px 18px 4px"
                           : "18px 18px 4px 18px",
-                      background:
-                        msg.role === "ai"
-                          ? "rgba(139,92,246,0.15)"
-                          : "rgba(139,92,246,0.35)",
-                      border: "1px solid rgba(139,92,246,0.25)",
+                      background: msg.error
+                        ? "rgba(239,68,68,0.12)"
+                        : msg.role === "ai"
+                        ? "rgba(139,92,246,0.15)"
+                        : "rgba(139,92,246,0.35)",
+                      border: msg.error
+                        ? "1px solid rgba(239,68,68,0.35)"
+                        : "1px solid rgba(139,92,246,0.25)",
                       color: "rgba(255,255,255,0.88)",
                       fontSize: 14,
                       lineHeight: 1.6,
                     }}
                   >
-                    {activeSidebar.title.toLowerCase() === "flashcards" &&
-                    msg.role === "ai" ? (
+                    {msg.error ? (
+                      <ErrorBubble
+                        text={msg.text}
+                        disabled={isTyping}
+                        onRetry={() =>
+                          sendMessage(msg.retryText, { isRetry: true })
+                        }
+                      />
+                    ) : activeSidebar.title.toLowerCase() === "flashcards" &&
+                      msg.role === "ai" ? (
                       parseFlashcards(msg.text).length > 0 ? (
                         <div className="flex flex-col gap-3">
                           {parseFlashcards(msg.text).map((card, i) => (
@@ -360,10 +416,10 @@ export default function Home() {
                           ))}
                         </div>
                       ) : (
-                        <ReactMarkdown>{msg.text}</ReactMarkdown>
+                        <ReactMarkdown>{fenceDiagrams(msg.text)}</ReactMarkdown>
                       )
                     ) : (
-                      <ReactMarkdown>{msg.text}</ReactMarkdown>
+                      <ReactMarkdown>{fenceDiagrams(msg.text)}</ReactMarkdown>
                     )}
                   </div>
                 </div>
@@ -410,15 +466,15 @@ export default function Home() {
 
           {/* Input bar and button */}
           <div
-            className="flex items-end gap-3 p-4"
+            className="hidden md:flex items-end gap-3 p-4 "
             style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
           >
             <textarea
-              value={input[activeSidebar.title.toLowerCase()]}
+              value={input[activeSidebar?.title?.toLowerCase()]}
               onChange={(e) => {
                 setInput((prev) => ({
                   ...prev,
-                  [activeSidebar.title.toLowerCase()]: e.target.value,
+                  [activeSidebar?.title?.toLowerCase()]: e.target.value,
                 }));
                 if (e.target.scrollHeight > 47) {
                   setTextareaHeight(e.target.scrollHeight);
@@ -447,14 +503,14 @@ export default function Home() {
             <button
               onClick={handleSend}
               disabled={
-                !input[activeSidebar.title.toLowerCase()].trim() || isTyping
+                !input[activeSidebar?.title?.toLowerCase()].trim() || isTyping
               }
               className="p-3 px-5 rounded-[14px] text-sm font-semibold text-white"
               style={{
                 background: "linear-gradient(135deg, #7c3aed, #a855f7)",
                 boxShadow: "0 4px 20px rgba(139,92,246,0.4)",
                 opacity:
-                  !input[activeSidebar.title.toLowerCase()].trim() || isTyping
+                  !input[activeSidebar?.title?.toLowerCase()].trim() || isTyping
                     ? 0.5
                     : 1,
                 transition: "opacity 0.2s",
@@ -463,6 +519,97 @@ export default function Home() {
             >
               ✦ Send
             </button>
+          </div>
+          {/* Input bar, button and dock for mobile */}
+          <div className="inset-x-0 bottom-0 z-50 md:hidden px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <div
+              className="rounded-[22px] px-3 pt-3 pb-2"
+              style={{
+                background: "rgba(22,18,48,0.95)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                backdropFilter: "blur(12px)",
+                boxShadow: "0 8px 30px rgba(0,0,0,0.3)",
+              }}
+            >
+              {/* Input row */}
+              <div className="flex items-end gap-2 mb-3">
+                <textarea
+                  value={input[activeSidebar?.title?.toLowerCase()]}
+                  onChange={(e) => {
+                    setInput((prev) => ({
+                      ...prev,
+                      [activeSidebar?.title?.toLowerCase()]: e.target.value,
+                    }));
+                    if (e.target.scrollHeight > 47) {
+                      setTextareaHeight(e.target.scrollHeight);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                  onFocus={() => setIsKeyboardOpen(true)}
+                  onBlur={() => setIsKeyboardOpen(false)}
+                  placeholder="Ask me anything..."
+                  className="flex-1 resize-none p-3 rounded-[14px] text-sm no-scrollbar"
+                  style={{
+                    background: "rgba(255,255,255,0.05)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    color: "rgba(255,255,255,0.85)",
+                    outline: "none",
+                    lineHeight: 1.5,
+                    height: textareaHeight,
+                    minHeight: 47,
+                    maxHeight: 250,
+                  }}
+                />
+                <button
+                  onClick={handleSend}
+                  disabled={
+                    !input[activeSidebar?.title?.toLowerCase()].trim() ||
+                    isTyping
+                  }
+                  className="p-3 px-5 rounded-[14px] text-sm font-semibold text-white shrink-0"
+                  style={{
+                    background: "linear-gradient(135deg, #7c3aed, #a855f7)",
+                    boxShadow: "0 4px 20px rgba(139,92,246,0.4)",
+                    opacity:
+                      !input[activeSidebar?.title?.toLowerCase()].trim() ||
+                      isTyping
+                        ? 0.5
+                        : 1,
+                    transition: "opacity 0.2s",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  ✦ Send
+                </button>
+              </div>
+
+              {/* Dock row */}
+              <div
+                aria-hidden={isKeyboardOpen}
+                className="grid"
+                style={{
+                  gridTemplateRows: isKeyboardOpen ? "0fr" : "1fr",
+                  opacity: isKeyboardOpen ? 0 : 1,
+                  pointerEvents: isKeyboardOpen ? "none" : "auto",
+                  transition:
+                    "grid-template-rows 220ms ease, opacity 90ms ease",
+                }}
+              >
+                <div className="min-h-0 overflow-hidden">
+                  <div className="pt-3s">
+                    <MobileNav
+                      activeTab={activeSidebar?.title?.toLowerCase()}
+                      setActiveTab={setActiveSidebar}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
